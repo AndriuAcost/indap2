@@ -1,0 +1,1289 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>INDAP App</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<!-- Firebase v9 compat (CDN) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+<style>
+/* ===== RESET & VARIABLES ===== */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --g:#0F6E56;--gm:#1D9E75;--gl:#E1F5EE;--gd:#085041;--g2:#04342C;
+  --ink:#1a1a1a;--ink2:#4a4a4a;--ink3:#888;--ink4:#bbb;
+  --bg:#f4f4f1;--white:#fff;--border:#e2e2dc;
+  --red:#E24B4A;--rl:#FCEBEB;--amber:#BA7517;--al:#FAEEDA;
+  --blue:#185FA5;--bl:#E6F1FB;
+  --r:14px;--rs:9px;--rx:18px;
+  --shadow:0 2px 12px rgba(0,0,0,.07);
+}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;overscroll-behavior:none;padding-bottom:80px;}
+
+/* ===== HEADER ===== */
+.hdr{background:var(--gd);color:#fff;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;box-shadow:0 2px 8px rgba(0,0,0,.2);}
+.hdr-title{font-size:16px;font-weight:600;letter-spacing:-.3px;}
+.hdr-sub{font-size:11px;opacity:.55;margin-top:1px;}
+.hdr-badge{background:var(--gm);color:#fff;font-size:11px;font-weight:600;padding:5px 11px;border-radius:20px;cursor:pointer;}
+.hdr-right{display:flex;align-items:center;gap:8px;}
+
+/* ===== BOTTOM NAV ===== */
+.nav{position:fixed;bottom:0;left:0;right:0;background:var(--white);border-top:1px solid var(--border);display:flex;z-index:200;padding-bottom:env(safe-area-inset-bottom);}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;padding:10px 4px 8px;cursor:pointer;transition:color .2s;color:var(--ink3);border:none;background:none;font-family:inherit;}
+.nav-item.active{color:var(--g);}
+.nav-icon{font-size:22px;margin-bottom:2px;}
+.nav-label{font-size:10px;font-weight:500;}
+
+/* ===== SCREENS ===== */
+.screen{display:none;}.screen.active{display:block;}
+.main{padding:16px 15px 20px;}
+
+/* ===== CARDS ===== */
+.card{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:12px;box-shadow:var(--shadow);}
+.card-title{font-size:10px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.9px;margin-bottom:12px;}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+
+/* ===== FORMS ===== */
+.field{margin-bottom:12px;}.field:last-child{margin-bottom:0;}
+label{font-size:13px;font-weight:500;color:var(--ink2);display:block;margin-bottom:4px;}
+input,select,textarea{width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:var(--rs);font-family:inherit;font-size:15px;color:var(--ink);background:var(--white);appearance:none;outline:none;transition:border-color .2s;resize:none;}
+input:focus,select:focus,textarea:focus{border-color:var(--gm);}
+input::placeholder,textarea::placeholder{color:var(--ink4);}
+.mono{font-family:'DM Mono',monospace;letter-spacing:.8px;}
+
+/* ===== BUTTONS ===== */
+.btn{width:100%;padding:13px;border-radius:var(--rs);border:none;font-family:inherit;font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:opacity .15s,transform .1s;}
+.btn:active{transform:scale(.98);opacity:.85;}
+.btn-p{background:var(--g);color:#fff;}
+.btn-s{background:var(--bg);color:var(--ink);border:1.5px solid var(--border);}
+.btn-o{background:#fff;color:var(--g);border:1.5px solid var(--g);}
+.btn-r{background:var(--rl);color:var(--red);border:1.5px solid #f5c1c1;}
+.btn-sm{padding:8px 14px;font-size:13px;width:auto;border-radius:var(--rs);}
+.btn:disabled{opacity:.3;pointer-events:none;}
+.btn2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.mt{margin-top:10px;}
+
+/* ===== BADGES ===== */
+.badge{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;}
+.bg{background:var(--gl);color:var(--gd);}
+.ba{background:var(--al);color:var(--amber);}
+.bb{background:var(--bl);color:var(--blue);}
+.br{background:var(--rl);color:var(--red);}
+
+/* ===== LOGIN SCREEN ===== */
+#loginScreen{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;background:var(--gd);}
+.login-logo{font-size:56px;margin-bottom:16px;}
+.login-title{font-size:26px;font-weight:600;color:#fff;margin-bottom:6px;text-align:center;}
+.login-sub{font-size:14px;color:rgba(255,255,255,.6);text-align:center;margin-bottom:28px;line-height:1.6;}
+.login-card{background:var(--white);border-radius:var(--rx);padding:22px;width:100%;max-width:380px;box-shadow:0 20px 60px rgba(0,0,0,.3);}
+.login-card .card-title{margin-bottom:16px;}
+.login-err{background:var(--rl);color:var(--red);border-radius:var(--rs);padding:10px 13px;font-size:13px;margin-top:10px;display:none;line-height:1.5;}
+.login-loading{text-align:center;color:rgba(255,255,255,.7);font-size:14px;margin-top:16px;display:none;}
+
+/* ===== HERO HOME ===== */
+.hero{background:var(--gd);color:#fff;padding:22px 18px 18px;margin-bottom:0;}
+.hero-name{font-size:22px;font-weight:600;letter-spacing:-.5px;margin-bottom:2px;}
+.hero-sub{font-size:14px;opacity:.65;}
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:14px 0 0;}
+.stat{background:rgba(255,255,255,.1);border-radius:var(--rs);padding:10px 8px;text-align:center;}
+.stat-num{font-size:20px;font-weight:600;}
+.stat-lbl{font-size:10px;opacity:.65;margin-top:1px;}
+
+/* ===== MENU GRID ===== */
+.menu-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+.menu-card{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:16px;cursor:pointer;transition:transform .15s,border-color .2s;display:flex;flex-direction:column;gap:8px;box-shadow:var(--shadow);}
+.menu-card:active{transform:scale(.97);}
+.menu-card:hover{border-color:var(--gm);}
+.menu-icon{font-size:28px;}
+.menu-title{font-size:14px;font-weight:600;}
+.menu-desc{font-size:12px;color:var(--ink3);line-height:1.4;}
+
+/* ===== LIST ROWS ===== */
+.row{display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid var(--border);}
+.row:last-child{border-bottom:none;}
+.row-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.row-info{flex:1;min-width:0;}
+.row-title{font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.row-sub{font-size:12px;color:var(--ink3);margin-top:1px;}
+.row-action{font-size:18px;color:var(--ink4);cursor:pointer;padding:4px;}
+.doc-thumb{width:42px;height:42px;border-radius:var(--rs);object-fit:cover;border:1px solid var(--border);flex-shrink:0;}
+
+/* ===== CAMERA ===== */
+.cam-area{border:2px dashed var(--border);border-radius:var(--r);background:var(--bg);min-height:190px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;margin-bottom:12px;overflow:hidden;}
+#video,#preview{width:100%;border-radius:var(--rs);display:block;}
+#preview{display:none;}
+.cam-empty{text-align:center;}
+.cam-icon{font-size:44px;opacity:.2;}
+.cam-txt{font-size:13px;color:var(--ink3);margin-top:8px;line-height:1.5;}
+
+/* ===== UPLOAD STATUS ===== */
+.uploading{display:flex;align-items:center;gap:10px;padding:13px;background:var(--gl);border-radius:var(--rs);font-size:14px;color:var(--gd);font-weight:500;margin-top:10px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.spinner{width:17px;height:17px;border:2.5px solid #9FE1CB;border-top-color:var(--g);border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0;}
+.drive-path{background:var(--bg);border:1px solid var(--border);border-radius:var(--rs);padding:10px 12px;font-family:'DM Mono',monospace;font-size:11px;color:var(--gd);word-break:break-all;line-height:1.7;margin-top:10px;}
+
+/* ===== CONFIRM ===== */
+.confirm-row{display:flex;gap:13px;align-items:flex-start;}
+.confirm-thumb{width:68px;height:68px;border-radius:var(--rs);object-fit:cover;border:1px solid var(--border);flex-shrink:0;}
+
+/* ===== CALC ===== */
+.calc-result{background:var(--gl);border-radius:var(--r);padding:16px;margin-bottom:12px;}
+.calc-main{font-size:28px;font-weight:600;color:var(--gd);}
+.calc-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;}
+.calc-item{background:rgba(255,255,255,.7);border-radius:var(--rs);padding:10px;text-align:center;}
+.calc-item-val{font-size:16px;font-weight:600;color:var(--gd);}
+.calc-item-lbl{font-size:11px;color:var(--g);margin-top:2px;}
+
+/* ===== CHECKLIST ===== */
+.check-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer;}
+.check-item:last-child{border-bottom:none;}
+.check-box{width:22px;height:22px;border-radius:6px;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s;}
+.check-box.checked{background:var(--g);border-color:var(--g);color:#fff;}
+.check-label{font-size:14px;flex:1;}
+.check-label.done{color:var(--ink3);text-decoration:line-through;}
+.prog-bar-wrap{background:var(--border);border-radius:20px;height:6px;overflow:hidden;margin-top:6px;}
+.prog-bar-fill{background:var(--gm);height:100%;border-radius:20px;transition:width .4s;}
+
+/* ===== INFORME ===== */
+.informe-stat{background:var(--bg);border-radius:var(--rs);padding:12px;text-align:center;}
+.informe-num{font-size:24px;font-weight:600;color:var(--gd);}
+.informe-lbl{font-size:11px;color:var(--ink3);margin-top:2px;}
+
+/* ===== SETUP/CONFIG ===== */
+.note{background:var(--al);border:1px solid #FAC775;border-radius:var(--rs);padding:11px 13px;font-size:13px;color:var(--amber);line-height:1.5;margin-bottom:12px;}
+.note.info{background:var(--bl);border-color:#A8D4F8;color:var(--blue);}
+.config-section{padding:10px 0;border-bottom:1px solid var(--border);}
+.config-section:last-child{border-bottom:none;}
+.config-label{font-size:12px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.7px;margin-bottom:4px;}
+.config-val{font-size:14px;color:var(--ink);word-break:break-all;}
+
+/* ===== SYNC INDICATOR ===== */
+.sync-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px;}
+.sync-dot.ok{background:#4CAF50;}
+.sync-dot.pending{background:var(--amber);}
+.sync-dot.err{background:var(--red);}
+
+/* ===== ANIMATIONS ===== */
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+.screen.active .main{animation:fadeIn .22s ease;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.5;}}
+.loading-pulse{animation:pulse 1.2s infinite;}
+
+canvas{display:none;}
+</style>
+</head>
+<body>
+
+<!-- ============================= -->
+<!--  LOGIN SCREEN                 -->
+<!-- ============================= -->
+<div id="loginScreen">
+  <div class="login-logo">🌱</div>
+  <div class="login-title">INDAP App</div>
+  <div class="login-sub">Sistema de gestión para funcionarios.<br>Ingresa con tu cuenta Google autorizada.</div>
+  <div class="login-card">
+    <div class="card-title">Iniciar sesión</div>
+    <div class="field">
+      <label>Correo electrónico</label>
+      <input type="email" id="loginEmail" placeholder="tu@gmail.com" autocomplete="username">
+    </div>
+    <div class="field">
+      <label>Contraseña</label>
+      <input type="password" id="loginPass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="btn btn-p" onclick="doLogin()" id="btnLogin">Ingresar</button>
+    <div class="login-err" id="loginErr"></div>
+  </div>
+  <div class="login-loading" id="loginLoading">Verificando sesión...</div>
+</div>
+
+<!-- ============================= -->
+<!--  APP PRINCIPAL                -->
+<!-- ============================= -->
+<div id="app" class="screen">
+
+  <div class="hdr">
+    <div>
+      <div class="hdr-title">INDAP App</div>
+      <div class="hdr-sub" id="hdrSub">Chiloé</div>
+    </div>
+    <div class="hdr-right">
+      <span id="syncStatus" title="Estado de sincronización"></span>
+      <div class="hdr-badge" id="hdrBadge">Hoy</div>
+    </div>
+  </div>
+
+  <!-- ======= INICIO ======= -->
+  <div id="tab-inicio" class="screen active">
+    <div class="hero">
+      <div class="hero-name" id="heroName">Hola 👋</div>
+      <div class="hero-sub" id="heroDate"></div>
+      <div class="stats-row">
+        <div class="stat"><div class="stat-num" id="st1">—</div><div class="stat-lbl">Agricultores</div></div>
+        <div class="stat"><div class="stat-num" id="st2">—</div><div class="stat-lbl">Créditos</div></div>
+        <div class="stat"><div class="stat-num" id="st3">—</div><div class="stat-lbl">Postulac.</div></div>
+        <div class="stat"><div class="stat-num" id="st4">—</div><div class="stat-lbl">Docs</div></div>
+      </div>
+    </div>
+    <div class="main">
+      <div class="menu-grid">
+        <div class="menu-card" onclick="goTab('documentos')"><div class="menu-icon">📄</div><div class="menu-title">Documentos</div><div class="menu-desc">Escanear y subir a Drive</div></div>
+        <div class="menu-card" onclick="goTab('agricultores')"><div class="menu-icon">👨‍🌾</div><div class="menu-title">Agricultores</div><div class="menu-desc">Fichas por RUT</div></div>
+        <div class="menu-card" onclick="goTab('creditos')"><div class="menu-icon">💰</div><div class="menu-title">Créditos</div><div class="menu-desc">Calculadora y seguimiento</div></div>
+        <div class="menu-card" onclick="goTab('postulaciones')"><div class="menu-icon">📋</div><div class="menu-title">Postulaciones</div><div class="menu-desc">Checklist y estados</div></div>
+      </div>
+      <div class="menu-card" onclick="goTab('informes')" style="display:flex;flex-direction:row;align-items:center;gap:12px;">
+        <div class="menu-icon">📊</div>
+        <div><div class="menu-title">Informes</div><div class="menu-desc">Resumen mensual y exportar datos</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======= DOCUMENTOS ======= -->
+  <div id="tab-documentos" class="screen">
+    <div id="doc-s1" class="screen active">
+      <div class="main">
+        <div class="card">
+          <div class="card-title">Datos del documento</div>
+          <div class="field"><label>RUT</label><input class="mono" type="text" id="dRut" placeholder="12.345.678-9" oninput="fmtRut(this)" inputmode="numeric"></div>
+          <div class="field"><label>Nombre completo</label><input type="text" id="dNombre" placeholder="Ej: María González"></div>
+          <div class="field"><label>Tipo de documento</label>
+            <select id="dTipo">
+              <option value="">Seleccionar...</option>
+              <option>Solicitud de crédito</option><option>Contrato PRODESAL</option>
+              <option>Ficha de postulación</option><option>Informe técnico SAT</option>
+              <option>Bono de fomento productivo</option><option>Programa de riego</option>
+              <option>Resolución</option><option>Otro</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-p" onclick="docStep(2)">Continuar →</button>
+        <button class="btn btn-s mt" onclick="goTab('inicio')">← Inicio</button>
+      </div>
+    </div>
+    <div id="doc-s2" class="screen">
+      <div class="main">
+        <div class="cam-area" id="camArea">
+          <video id="video" autoplay playsinline muted style="display:none;"></video>
+          <img id="preview">
+          <div class="cam-empty" id="camEmpty"><div class="cam-icon">📷</div><div class="cam-txt">Toca "Abrir cámara" para fotografiar el documento</div></div>
+        </div>
+        <canvas id="canvas"></canvas>
+        <div id="ctrl-i">
+          <button class="btn btn-p" onclick="abrirCam()" style="margin-bottom:10px;">📷 Abrir cámara</button>
+          <button class="btn btn-o" onclick="document.getElementById('fileInput').click()">🖼 Subir desde galería</button>
+        </div>
+        <div id="ctrl-g" style="display:none;">
+          <button class="btn btn-p" onclick="tomarFoto()" style="margin-bottom:10px;">⭕ Tomar foto</button>
+          <button class="btn btn-r" onclick="detCam()">✕ Cancelar</button>
+        </div>
+        <div id="ctrl-p" style="display:none;"><button class="btn btn-s" onclick="repetir()">🔄 Volver a tomar</button></div>
+        <input type="file" id="fileInput" accept="image/*" style="display:none" onchange="cargarArchivo(event)">
+        <div class="btn2 mt">
+          <button class="btn btn-s" onclick="docStep(1)">← Atrás</button>
+          <button class="btn btn-p" id="btnNext2" onclick="docStep(3)" disabled>Continuar →</button>
+        </div>
+      </div>
+    </div>
+    <div id="doc-s3" class="screen">
+      <div class="main">
+        <div class="card">
+          <div class="card-title">Confirmar y subir</div>
+          <div class="confirm-row">
+            <img id="cThumb" class="confirm-thumb">
+            <div><div style="font-size:16px;font-weight:600;" id="cNombre"></div><div style="font-family:'DM Mono',monospace;font-size:13px;color:var(--ink2);margin:3px 0 6px;" id="cRut"></div><span class="badge ba" id="cTipo"></span></div>
+          </div>
+          <div class="drive-path" id="drivePath"></div>
+        </div>
+        <div class="note info">☁️ Se subirá a Google Drive y se registrará en Firestore y Google Sheets automáticamente.</div>
+        <button class="btn btn-p" id="btnSubir" onclick="subirDoc()">☁️ Subir a Google Drive</button>
+        <div id="uploadStatus"></div>
+        <button class="btn btn-s mt" onclick="docStep(2)">← Atrás</button>
+      </div>
+    </div>
+    <div id="doc-s4" class="screen">
+      <div class="main">
+        <div class="card" id="docExito" style="display:none;text-align:center;padding:20px;">
+          <div style="font-size:36px;margin-bottom:8px;">✅</div>
+          <div style="font-size:17px;font-weight:600;">¡Guardado!</div>
+          <div style="font-size:13px;color:var(--ink2);margin-top:4px;">Drive + Firestore + Sheets actualizados.</div>
+        </div>
+        <div class="card"><div class="card-title">Documentos recientes</div><div id="docHistList"><div class="loading-pulse" style="color:var(--ink3);font-size:14px;padding:16px;text-align:center;">Cargando...</div></div></div>
+        <button class="btn btn-p" onclick="nuevoDoc()">+ Nuevo documento</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======= AGRICULTORES ======= -->
+  <div id="tab-agricultores" class="screen">
+    <div id="agr-list" class="screen active">
+      <div class="main">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title" style="margin:0;">Fichas de agricultores</div>
+            <button class="btn btn-p btn-sm" onclick="agrView('form')">+ Nuevo</button>
+          </div>
+          <input type="text" id="agrBuscar" placeholder="🔍  Buscar por nombre o RUT..." oninput="renderAgr()" style="margin-bottom:12px;">
+          <div id="agrList"><div class="loading-pulse" style="color:var(--ink3);font-size:14px;padding:16px;text-align:center;">Cargando...</div></div>
+        </div>
+      </div>
+    </div>
+    <div id="agr-form" class="screen">
+      <div class="main">
+        <div class="card">
+          <div class="card-title" id="agrFormTitle">Nueva ficha</div>
+          <div class="field"><label>RUT</label><input class="mono" type="text" id="aRut" placeholder="12.345.678-9" oninput="fmtRut(this)" inputmode="numeric"></div>
+          <div class="field"><label>Nombre completo</label><input type="text" id="aNombre" placeholder="Nombre y apellidos"></div>
+          <div class="field"><label>Teléfono</label><input type="tel" id="aTel" placeholder="+56 9 1234 5678"></div>
+          <div class="field"><label>Localidad</label><input type="text" id="aLocalidad" placeholder="Ej: Dalcahue, Castro..."></div>
+          <div class="field"><label>Programa</label>
+            <select id="aPrograma">
+              <option value="">Seleccionar...</option>
+              <option>PRODESAL</option><option>SAT</option><option>PDTI</option>
+              <option>Programa de riego</option><option>Bono de fomento</option><option>Otro</option>
+            </select>
+          </div>
+          <div class="field"><label>Cultivos / actividad</label><textarea id="aCultivos" rows="2" placeholder="Ej: Papas, ganado bovino, apicultura..."></textarea></div>
+          <div class="field"><label>Observaciones</label><textarea id="aObs" rows="2" placeholder="Notas adicionales..."></textarea></div>
+        </div>
+        <button class="btn btn-p" onclick="guardarAgr()">💾 Guardar ficha</button>
+        <button class="btn btn-s mt" onclick="agrView('list')">← Cancelar</button>
+      </div>
+    </div>
+    <div id="agr-detail" class="screen">
+      <div class="main" id="agrDetailContent"></div>
+    </div>
+  </div>
+
+  <!-- ======= CRÉDITOS ======= -->
+  <div id="tab-creditos" class="screen">
+    <div id="cred-main" class="screen active">
+      <div class="main">
+        <div class="card">
+          <div class="card-title">Calculadora de crédito</div>
+          <div class="field"><label>Monto ($)</label><input type="number" id="cMonto" placeholder="Ej: 5000000" oninput="calcCredito()"></div>
+          <div class="field"><label>Plazo (meses)</label>
+            <select id="cPlazo" onchange="calcCredito()">
+              <option value="12">12 meses</option><option value="24">24 meses</option>
+              <option value="36" selected>36 meses</option><option value="48">48 meses</option>
+              <option value="60">60 meses</option><option value="84">84 meses</option>
+            </select>
+          </div>
+          <div class="field"><label>Tasa anual (%)</label><input type="number" id="cTasa" value="6" step="0.1" oninput="calcCredito()"></div>
+          <div id="calcResult" style="display:none;">
+            <div class="calc-result">
+              <div style="font-size:12px;color:var(--g);margin-bottom:4px;">Cuota mensual estimada</div>
+              <div class="calc-main" id="calcCuota"></div>
+              <div class="calc-grid">
+                <div class="calc-item"><div class="calc-item-val" id="calcTotal"></div><div class="calc-item-lbl">Total a pagar</div></div>
+                <div class="calc-item"><div class="calc-item-val" id="calcIntereses"></div><div class="calc-item-lbl">Total intereses</div></div>
+              </div>
+            </div>
+            <button class="btn btn-o" onclick="registrarCredito()">+ Registrar este crédito</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title" style="margin:0;">Créditos registrados</div>
+            <button class="btn btn-p btn-sm" onclick="credView('form')">+ Nuevo</button>
+          </div>
+          <div id="credList"><div class="loading-pulse" style="color:var(--ink3);font-size:14px;padding:16px;text-align:center;">Cargando...</div></div>
+        </div>
+      </div>
+    </div>
+    <div id="cred-form" class="screen">
+      <div class="main">
+        <div class="card">
+          <div class="card-title">Registrar crédito</div>
+          <div class="field"><label>RUT del agricultor</label><input class="mono" type="text" id="crRut" placeholder="12.345.678-9" oninput="fmtRut(this)" inputmode="numeric"></div>
+          <div class="field"><label>Nombre</label><input type="text" id="crNombre" placeholder="Nombre del beneficiario"></div>
+          <div class="field"><label>Tipo de crédito</label>
+            <select id="crTipo">
+              <option>Crédito de corto plazo</option><option>Crédito de largo plazo</option>
+              <option>Crédito de inversión</option><option>Crédito de emergencia</option>
+            </select>
+          </div>
+          <div class="field"><label>Monto ($)</label><input type="number" id="crMonto" placeholder="0"></div>
+          <div class="field"><label>Estado</label>
+            <select id="crEstado">
+              <option>En revisión</option><option>Aprobado</option><option>Rechazado</option><option>Pagando</option><option>Pagado</option>
+            </select>
+          </div>
+          <div class="field"><label>Observaciones</label><textarea id="crObs" rows="2" placeholder="Notas..."></textarea></div>
+        </div>
+        <button class="btn btn-p" onclick="guardarCred()">💾 Guardar</button>
+        <button class="btn btn-s mt" onclick="credView('main')">← Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======= POSTULACIONES ======= -->
+  <div id="tab-postulaciones" class="screen">
+    <div id="post-list" class="screen active">
+      <div class="main">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title" style="margin:0;">Postulaciones</div>
+            <button class="btn btn-p btn-sm" onclick="postView('form')">+ Nueva</button>
+          </div>
+          <div id="postList"><div class="loading-pulse" style="color:var(--ink3);font-size:14px;padding:16px;text-align:center;">Cargando...</div></div>
+        </div>
+      </div>
+    </div>
+    <div id="post-form" class="screen">
+      <div class="main">
+        <div class="card">
+          <div class="card-title">Nueva postulación</div>
+          <div class="field"><label>RUT</label><input class="mono" type="text" id="pRut" placeholder="12.345.678-9" oninput="fmtRut(this)" inputmode="numeric"></div>
+          <div class="field"><label>Nombre</label><input type="text" id="pNombre" placeholder="Nombre del postulante"></div>
+          <div class="field"><label>Programa</label>
+            <select id="pPrograma">
+              <option>PRODESAL</option><option>SAT</option><option>PDTI</option>
+              <option>Programa de riego</option><option>Bono de fomento productivo</option>
+            </select>
+          </div>
+          <div class="field"><label>Estado</label>
+            <select id="pEstado">
+              <option>Pendiente</option><option>En revisión</option><option>Aprobada</option><option>Rechazada</option>
+            </select>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Checklist de documentos</div>
+          <div id="checklistItems"></div>
+        </div>
+        <button class="btn btn-p" onclick="guardarPost()">💾 Guardar postulación</button>
+        <button class="btn btn-s mt" onclick="postView('list')">← Cancelar</button>
+      </div>
+    </div>
+    <div id="post-detail" class="screen">
+      <div class="main" id="postDetailContent"></div>
+    </div>
+  </div>
+
+  <!-- ======= INFORMES ======= -->
+  <div id="tab-informes" class="screen">
+    <div class="main">
+      <div class="card">
+        <div class="card-title">Resumen general</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+          <div class="informe-stat"><div class="informe-num" id="iAgr">—</div><div class="informe-lbl">Agricultores</div></div>
+          <div class="informe-stat"><div class="informe-num" id="iCred">—</div><div class="informe-lbl">Créditos</div></div>
+          <div class="informe-stat"><div class="informe-num" id="iPost">—</div><div class="informe-lbl">Postulaciones</div></div>
+          <div class="informe-stat"><div class="informe-num" id="iDocs">—</div><div class="informe-lbl">Documentos</div></div>
+        </div>
+        <button class="btn btn-p" onclick="exportarCSV()">📥 Exportar agricultores CSV</button>
+        <button class="btn btn-o mt" onclick="exportarInforme()">📄 Exportar informe texto</button>
+      </div>
+      <div class="card">
+        <div class="card-title">Postulaciones por estado</div>
+        <div id="postEstados"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Créditos por estado</div>
+        <div id="credEstados"></div>
+      </div>
+      <!-- CONFIGURACIÓN -->
+      <div class="card">
+        <div class="card-title">Configuración</div>
+        <div class="config-section">
+          <div class="config-label">Sesión activa</div>
+          <div class="config-val" id="cfgEmail">—</div>
+        </div>
+        <div class="config-section">
+          <div class="config-label">URL Google Apps Script</div>
+          <div class="config-val" id="cfgUrl" style="font-size:12px;color:var(--ink3);">No configurada</div>
+        </div>
+        <div class="config-section">
+          <div class="config-label">Firebase</div>
+          <div class="config-val" style="font-size:13px;"><span class="sync-dot ok"></span>Conectado</div>
+        </div>
+        <button class="btn btn-s mt" onclick="showConfigModal()" style="margin-bottom:8px;">⚙️ Cambiar URL de Apps Script</button>
+        <button class="btn btn-r" onclick="doLogout()">🔒 Cerrar sesión</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- NAV -->
+  <nav class="nav">
+    <button class="nav-item active" id="nav-inicio" onclick="goTab('inicio')"><div class="nav-icon">🏠</div><div class="nav-label">Inicio</div></button>
+    <button class="nav-item" id="nav-documentos" onclick="goTab('documentos')"><div class="nav-icon">📄</div><div class="nav-label">Docs</div></button>
+    <button class="nav-item" id="nav-agricultores" onclick="goTab('agricultores')"><div class="nav-icon">👨‍🌾</div><div class="nav-label">Agric.</div></button>
+    <button class="nav-item" id="nav-creditos" onclick="goTab('creditos')"><div class="nav-icon">💰</div><div class="nav-label">Créditos</div></button>
+    <button class="nav-item" id="nav-postulaciones" onclick="goTab('postulaciones')"><div class="nav-icon">📋</div><div class="nav-label">Postul.</div></button>
+    <button class="nav-item" id="nav-informes" onclick="goTab('informes')"><div class="nav-icon">📊</div><div class="nav-label">Informes</div></button>
+  </nav>
+</div>
+
+<!-- ============================= -->
+<!--  MODAL CONFIG URL             -->
+<!-- ============================= -->
+<div id="configModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;display:none;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--white);border-radius:var(--rx);padding:22px;width:100%;max-width:380px;">
+    <div style="font-size:16px;font-weight:600;margin-bottom:14px;">URL de Apps Script</div>
+    <div class="field"><label>Pega aquí tu URL</label><input type="url" id="modalUrl" placeholder="https://script.google.com/macros/s/..."></div>
+    <div class="btn2">
+      <button class="btn btn-s" onclick="hideConfigModal()">Cancelar</button>
+      <button class="btn btn-p" onclick="saveScriptUrl()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================= -->
+<!--  JAVASCRIPT                   -->
+<!-- ============================= -->
+<script>
+/* =============================================
+   PASO 1: CONFIGURA TU FIREBASE AQUÍ
+   Ve a https://console.firebase.google.com
+   Crea un proyecto → Web app → copia la config
+   ============================================= */
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyDPbq21oGsR85B8bZ47uLgr_paDlaRwP8s",
+  authDomain:        "indap-tia.firebaseapp.com",
+  projectId:         "indap-tia",
+  storageBucket:     "indap-tia.firebasestorage.app",
+  messagingSenderId: "918083778718",
+  appId:             "1:918083778718:web:aa488de3825642f567e38f"
+};
+
+/* =============================================
+   PASO 2: EMAIL AUTORIZADO
+   Solo este correo puede entrar.
+   Cámbialo por el de tu tía.
+   ============================================= */
+const ALLOWED_EMAIL = "yorka@gmail.com";
+
+/* =============================================
+   PASO 3: URL DE TU GOOGLE APPS SCRIPT
+   Se puede cambiar desde la app también.
+   ============================================= */
+let SCRIPT_URL = localStorage.getItem('indap_script_url') || '';
+
+// ====== FIREBASE INIT ======
+let db, auth;
+let currentUser = null;
+
+// Cache local para evitar lecturas innecesarias
+let cache = { agrs:[], docs:[], creds:[], posts:[], loaded:false };
+
+const AUTO_EMAIL = "yorka@gmail.com";
+const AUTO_PASS  = "blanca123";
+
+function initFirebase() {
+  try {
+    firebase.initializeApp(FIREBASE_CONFIG);
+    db   = firebase.firestore();
+    auth = firebase.auth();
+    setupAuthListener();
+  } catch(e) {
+    // Si Firebase no está configurado, entra en modo demo
+    console.warn('Firebase no configurado, modo demo activo.');
+    enterDemoMode();
+  }
+}
+
+function setupAuthListener() {
+  document.getElementById('loginScreen').style.display = 'none';
+  auth.onAuthStateChanged(async user => {
+    if (user) {
+      currentUser = user;
+      startApp(user);
+    } else {
+      try {
+        await auth.signInWithEmailAndPassword(AUTO_EMAIL, AUTO_PASS);
+      } catch(e) {
+        document.getElementById('loginScreen').style.display = 'flex';
+        showLoginError('Error de acceso: ' + e.message);
+      }
+    }
+  });
+}
+
+// ====== AUTH ======
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass  = document.getElementById('loginPass').value;
+  const err   = document.getElementById('loginErr');
+  const btn   = document.getElementById('btnLogin');
+  err.style.display = 'none';
+  if (!email || !pass) { showLoginError('Ingresa correo y contraseña.'); return; }
+  btn.disabled = true; btn.textContent = 'Ingresando...';
+  try {
+    await auth.signInWithEmailAndPassword(email, pass);
+    // onAuthStateChanged se encargará del resto
+  } catch(e) {
+    const msgs = {
+      'auth/user-not-found': 'Correo no registrado.',
+      'auth/wrong-password': 'Contraseña incorrecta.',
+      'auth/invalid-email': 'Correo inválido.',
+      'auth/too-many-requests': 'Demasiados intentos. Espera un momento.',
+      'auth/invalid-credential': 'Correo o contraseña incorrectos.',
+    };
+    showLoginError(msgs[e.code] || 'Error: ' + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Ingresar';
+  }
+}
+
+function showLoginError(msg) {
+  const err = document.getElementById('loginErr');
+  err.textContent = msg; err.style.display = 'block';
+}
+
+async function doLogout() {
+  if (!confirm('¿Cerrar sesión?')) return;
+  await auth.signOut();
+  location.reload();
+}
+
+// ====== MODO DEMO (sin Firebase configurado) ======
+let isDemoMode = false;
+function enterDemoMode() {
+  isDemoMode = true;
+  // Cargar datos desde localStorage como fallback
+  cache.agrs  = JSON.parse(localStorage.getItem('indap_agrs')  || '[]');
+  cache.creds = JSON.parse(localStorage.getItem('indap_creds') || '[]');
+  cache.posts = JSON.parse(localStorage.getItem('indap_posts') || '[]');
+  cache.docs  = JSON.parse(localStorage.getItem('indap_docs')  || '[]');
+  cache.loaded = true;
+  currentUser = { email:'demo@indap.cl', displayName:'Demo' };
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('app').classList.add('active');
+  startApp(currentUser);
+}
+
+// ====== START APP ======
+function startApp(user) {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('app').classList.add('active');
+
+  const firstName = (user.displayName || user.email || 'Funcionaria').split(/[\s@]/)[0];
+  document.getElementById('heroName').textContent = 'Hola, ' + firstName + ' 👋';
+  const now = new Date();
+  document.getElementById('heroDate').textContent = now.toLocaleDateString('es-CL',{weekday:'long',day:'numeric',month:'long'});
+  document.getElementById('hdrBadge').textContent = now.toLocaleDateString('es-CL',{day:'numeric',month:'short'});
+  document.getElementById('cfgEmail').textContent = user.email || '—';
+  document.getElementById('cfgUrl').textContent   = SCRIPT_URL || 'No configurada';
+  setSyncStatus('ok');
+
+  loadAllData();
+}
+
+// ====== SYNC STATUS ======
+function setSyncStatus(state) {
+  const el = document.getElementById('syncStatus');
+  el.innerHTML = `<span class="sync-dot ${state}"></span>`;
+}
+
+// ====== DATA LAYER ======
+// Si isDemoMode → usa cache + localStorage. Si Firebase → usa Firestore.
+
+async function loadAllData() {
+  if (isDemoMode) { renderAll(); updateStats(); return; }
+  setSyncStatus('pending');
+  try {
+    const uid = currentUser.uid;
+    const [agrSnap, credSnap, postSnap, docSnap] = await Promise.all([
+      db.collection('usuarios').doc(uid).collection('agricultores').orderBy('fecha','desc').get(),
+      db.collection('usuarios').doc(uid).collection('creditos').orderBy('fecha','desc').get(),
+      db.collection('usuarios').doc(uid).collection('postulaciones').orderBy('fecha','desc').get(),
+      db.collection('usuarios').doc(uid).collection('documentos').orderBy('fecha','desc').limit(30).get(),
+    ]);
+    cache.agrs  = agrSnap.docs.map(d=>({id:d.id,...d.data()}));
+    cache.creds = credSnap.docs.map(d=>({id:d.id,...d.data()}));
+    cache.posts = postSnap.docs.map(d=>({id:d.id,...d.data()}));
+    cache.docs  = docSnap.docs.map(d=>({id:d.id,...d.data()}));
+    cache.loaded = true;
+    setSyncStatus('ok');
+    renderAll(); updateStats();
+  } catch(e) {
+    setSyncStatus('err');
+    console.error('Error cargando datos:', e);
+  }
+}
+
+async function fsAdd(col, data) {
+  if (isDemoMode) {
+    const item = {...data, id: Date.now().toString()};
+    cache[col].unshift(item);
+    localStorage.setItem('indap_'+col, JSON.stringify(cache[col]));
+    updateStats();
+    return item.id;
+  }
+  const uid = currentUser.uid;
+  const ref = await db.collection('usuarios').doc(uid).collection(col).add(data);
+  cache[col].unshift({id:ref.id,...data});
+  updateStats();
+  return ref.id;
+}
+
+async function fsUpdate(col, id, data) {
+  if (isDemoMode) {
+    const idx = cache[col].findIndex(x=>x.id===id);
+    if (idx>=0) cache[col][idx] = {...cache[col][idx],...data};
+    localStorage.setItem('indap_'+col, JSON.stringify(cache[col]));
+    return;
+  }
+  const uid = currentUser.uid;
+  await db.collection('usuarios').doc(uid).collection(col).doc(id).update(data);
+  const idx = cache[col].findIndex(x=>x.id===id);
+  if (idx>=0) cache[col][idx] = {...cache[col][idx],...data};
+}
+
+async function fsDelete(col, id) {
+  if (isDemoMode) {
+    cache[col] = cache[col].filter(x=>x.id!==id);
+    localStorage.setItem('indap_'+col, JSON.stringify(cache[col]));
+    updateStats(); return;
+  }
+  const uid = currentUser.uid;
+  await db.collection('usuarios').doc(uid).collection(col).doc(id).delete();
+  cache[col] = cache[col].filter(x=>x.id!==id);
+  updateStats();
+}
+
+// ====== NAVIGATION ======
+const TABS = ['inicio','documentos','agricultores','creditos','postulaciones','informes'];
+function goTab(tab) {
+  TABS.forEach(t => {
+    document.getElementById('tab-'+t).classList.remove('active');
+    const n = document.getElementById('nav-'+t);
+    if (n) n.classList.remove('active');
+  });
+  document.getElementById('tab-'+tab).classList.add('active');
+  const n = document.getElementById('nav-'+tab);
+  if (n) n.classList.add('active');
+  window.scrollTo(0,0);
+  if (tab==='informes') renderInformes();
+}
+
+// ====== STATS ======
+function updateStats() {
+  document.getElementById('st1').textContent = cache.agrs.length;
+  document.getElementById('st2').textContent = cache.creds.length;
+  document.getElementById('st3').textContent = cache.posts.length;
+  document.getElementById('st4').textContent = cache.docs.length;
+}
+function renderAll() { renderDocHist(); renderAgr(); renderCred(); renderPost(); }
+
+// ====== UTILS ======
+function fmtRut(el) {
+  let v = el.value.replace(/[^0-9kK]/g,'').toUpperCase();
+  if (v.length>1) { const b=v.slice(0,-1).replace(/(\d)(?=(\d{3})+(?!\d))/g,'$1.'); v=b+'-'+v.slice(-1); }
+  el.value = v;
+}
+function fmt(n) { return new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(n); }
+function today() { return new Date().toLocaleDateString('es-CL'); }
+function ts() { return firebase.firestore ? firebase.firestore.FieldValue.serverTimestamp() : new Date().toISOString(); }
+
+// ====== CONFIGURACIÓN ======
+function showConfigModal() {
+  document.getElementById('modalUrl').value = SCRIPT_URL;
+  document.getElementById('configModal').style.display = 'flex';
+}
+function hideConfigModal() { document.getElementById('configModal').style.display = 'none'; }
+function saveScriptUrl() {
+  const url = document.getElementById('modalUrl').value.trim();
+  if (url && !url.startsWith('https://script.google.com')) { alert('URL inválida.'); return; }
+  SCRIPT_URL = url;
+  localStorage.setItem('indap_script_url', url);
+  document.getElementById('cfgUrl').textContent = url || 'No configurada';
+  hideConfigModal();
+}
+
+// ====== DOCUMENTOS ======
+let capturedDataUrl=null, capturedBlob=null, capturedExt='jpg', videoStream=null;
+
+function docStep(n) {
+  if (n===2 && !valDoc1()) return;
+  if (n===3) { if (!capturedDataUrl) return; fillConfirm(); }
+  [1,2,3,4].forEach(i=>document.getElementById('doc-s'+i).classList.remove('active'));
+  document.getElementById('doc-s'+n).classList.add('active');
+  window.scrollTo(0,0);
+}
+function valDoc1() {
+  if (!document.getElementById('dRut').value.trim()||!document.getElementById('dNombre').value.trim()||!document.getElementById('dTipo').value) {
+    alert('Completa todos los campos.'); return false;
+  }
+  return true;
+}
+function fillConfirm() {
+  const rut=document.getElementById('dRut').value.trim();
+  const nom=document.getElementById('dNombre').value.trim();
+  const tip=document.getElementById('dTipo').value;
+  document.getElementById('cNombre').textContent=nom;
+  document.getElementById('cRut').textContent='RUT: '+rut;
+  document.getElementById('cTipo').textContent=tip;
+  document.getElementById('cThumb').src=capturedDataUrl;
+  const rc=rut.replace(/\./g,'').replace('-','_');
+  const nc=nom.replace(/\s+/g,'_').replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ0-9_]/g,'');
+  const f=new Date().toISOString().slice(0,10);
+  document.getElementById('drivePath').textContent=`INDAP_Documentos/${rc}_${nc}/${tip}/${f}.${capturedExt}`;
+  document.getElementById('uploadStatus').innerHTML='';
+  document.getElementById('btnSubir').disabled=false;
+}
+
+async function abrirCam() {
+  try {
+    videoStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});
+    const v=document.getElementById('video');
+    v.srcObject=videoStream; v.style.display='block';
+    document.getElementById('preview').style.display='none';
+    document.getElementById('camEmpty').style.display='none';
+    document.getElementById('ctrl-i').style.display='none';
+    document.getElementById('ctrl-g').style.display='block';
+    document.getElementById('ctrl-p').style.display='none';
+  } catch(e) { alert('No se pudo acceder a la cámara. Usa "Subir desde galería".'); }
+}
+function detCam() {
+  if (videoStream) { videoStream.getTracks().forEach(t=>t.stop()); videoStream=null; }
+  document.getElementById('video').style.display='none';
+  document.getElementById('ctrl-g').style.display='none';
+  document.getElementById('ctrl-i').style.display='block';
+  if (!capturedDataUrl) document.getElementById('camEmpty').style.display='flex';
+}
+function tomarFoto() {
+  const v=document.getElementById('video'), c=document.getElementById('canvas');
+  c.width=v.videoWidth; c.height=v.videoHeight;
+  c.getContext('2d').drawImage(v,0,0);
+  capturedDataUrl=c.toDataURL('image/jpeg',.82);
+  c.toBlob(b=>{capturedBlob=b;},'image/jpeg',.82);
+  capturedExt='jpg';
+  showPrev(capturedDataUrl); detCam();
+}
+function cargarArchivo(e) {
+  const file=e.target.files[0]; if (!file) return;
+  capturedExt=file.name.split('.').pop().toLowerCase()||'jpg';
+  capturedBlob=file;
+  const r=new FileReader();
+  r.onload=ev=>{capturedDataUrl=ev.target.result; showPrev(capturedDataUrl);};
+  r.readAsDataURL(file);
+}
+function showPrev(src) {
+  const img=document.getElementById('preview');
+  img.src=src; img.style.display='block';
+  document.getElementById('camEmpty').style.display='none';
+  document.getElementById('video').style.display='none';
+  document.getElementById('ctrl-i').style.display='none';
+  document.getElementById('ctrl-g').style.display='none';
+  document.getElementById('ctrl-p').style.display='block';
+  document.getElementById('btnNext2').disabled=false;
+}
+function repetir() {
+  capturedDataUrl=null; capturedBlob=null;
+  document.getElementById('preview').style.display='none';
+  document.getElementById('ctrl-p').style.display='none';
+  document.getElementById('ctrl-i').style.display='block';
+  document.getElementById('camEmpty').style.display='flex';
+  document.getElementById('btnNext2').disabled=true;
+  document.getElementById('fileInput').value='';
+}
+
+async function subirDoc() {
+  const btn=document.getElementById('btnSubir');
+  btn.disabled=true;
+  document.getElementById('uploadStatus').innerHTML='<div class="uploading"><div class="spinner"></div>Subiendo a Google Drive...</div>';
+  const rut=document.getElementById('dRut').value.trim();
+  const nom=document.getElementById('dNombre').value.trim();
+  const tip=document.getElementById('dTipo').value;
+  let driveUrl='', nombreArchivo='';
+  const fecha=new Date().toISOString().slice(0,10);
+
+  try {
+    // 1. Subir a Google Drive via Apps Script
+    if (SCRIPT_URL) {
+      const b64=capturedDataUrl.split(',')[1];
+      const res=await fetch(SCRIPT_URL, {
+        method:'POST',
+        body: JSON.stringify({rut,nombre:nom,tipo:tip,imagen:b64,extension:capturedExt,
+          funcionario: currentUser.email})
+      });
+      const data=await res.json();
+      if (!data.ok) throw new Error(data.error||'Error en Drive');
+      driveUrl=data.url||'';
+      nombreArchivo=data.fileName||`${fecha}.${capturedExt}`;
+    } else {
+      // Sin script URL, simular
+      await new Promise(r=>setTimeout(r,800));
+      nombreArchivo=`${fecha}.${capturedExt}`;
+    }
+
+    // 2. Guardar metadata en Firestore
+    const docData = {
+      rut, nombre:nom, tipoDocumento:tip,
+      fecha:today(), fechaISO:fecha,
+      driveUrl, nombreArchivo,
+      funcionario: currentUser.email,
+      thumb: capturedDataUrl // Para historial local (solo guardamos miniatura)
+    };
+    await fsAdd('docs', docData);
+
+    // 3. Agregar fila en Google Sheets (si hay script URL)
+    if (SCRIPT_URL) {
+      try {
+        await fetch(SCRIPT_URL, {
+          method:'POST',
+          body: JSON.stringify({
+            action:'sheets',
+            fecha:today(), nombre:nom, rut, tipoDocumento:tip,
+            programa:'', estado:'Subido', driveUrl,
+            funcionario: currentUser.email
+          })
+        });
+      } catch(e) { console.warn('Sheets no actualizado:', e); }
+    }
+
+    renderDocHist();
+    document.getElementById('uploadStatus').innerHTML='';
+    document.getElementById('docExito').style.display='block';
+    docStep(4);
+  } catch(err) {
+    document.getElementById('uploadStatus').innerHTML=
+      `<div style="background:var(--rl);color:var(--red);padding:12px;border-radius:8px;font-size:13px;margin-top:10px;line-height:1.5;">❌ ${err.message}</div>`;
+    btn.disabled=false;
+  }
+}
+
+function renderDocHist() {
+  const el=document.getElementById('docHistList');
+  if (!cache.docs.length) { el.innerHTML='<div style="text-align:center;padding:20px;color:var(--ink3);font-size:14px;">Sin documentos aún</div>'; return; }
+  el.innerHTML=cache.docs.slice(0,20).map(d=>`
+    <div class="row">
+      ${d.thumb ? `<img class="doc-thumb" src="${d.thumb}" alt="">` : `<div class="row-icon" style="background:var(--gl);">📄</div>`}
+      <div class="row-info">
+        <div class="row-title">${d.nombre}</div>
+        <div class="row-sub">RUT: ${d.rut} · ${d.tipoDocumento||d.tipo||''} · ${d.fecha}</div>
+      </div>
+      ${d.driveUrl ? `<a href="${d.driveUrl}" target="_blank" style="color:var(--g);font-size:18px;text-decoration:none;">🔗</a>` : `<span class="badge bg">✓</span>`}
+    </div>`).join('');
+}
+
+function nuevoDoc() {
+  capturedDataUrl=null; capturedBlob=null; capturedExt='jpg';
+  ['dRut','dNombre'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('dTipo').value='';
+  document.getElementById('preview').style.display='none';
+  document.getElementById('camEmpty').style.display='flex';
+  document.getElementById('ctrl-i').style.display='block';
+  document.getElementById('ctrl-g').style.display='none';
+  document.getElementById('ctrl-p').style.display='none';
+  document.getElementById('btnNext2').disabled=true;
+  document.getElementById('docExito').style.display='none';
+  document.getElementById('fileInput').value='';
+  docStep(1);
+}
+
+// ====== AGRICULTORES ======
+let editAgrId = null;
+
+function agrView(v) {
+  ['list','form','detail'].forEach(s=>document.getElementById('agr-'+s).classList.remove('active'));
+  document.getElementById('agr-'+v).classList.add('active');
+  if (v==='form' && !editAgrId) {
+    ['aRut','aNombre','aTel','aLocalidad','aCultivos','aObs'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('aPrograma').value='';
+    document.getElementById('agrFormTitle').textContent='Nueva ficha';
+  }
+  window.scrollTo(0,0);
+}
+
+async function guardarAgr() {
+  const rut=document.getElementById('aRut').value.trim();
+  const nom=document.getElementById('aNombre').value.trim();
+  if (!rut||!nom) { alert('RUT y nombre son obligatorios.'); return; }
+  const agr={rut,nombre:nom,tel:document.getElementById('aTel').value.trim(),
+    localidad:document.getElementById('aLocalidad').value.trim(),
+    programa:document.getElementById('aPrograma').value,
+    cultivos:document.getElementById('aCultivos').value.trim(),
+    obs:document.getElementById('aObs').value.trim(),fecha:today()};
+  if (editAgrId) {
+    await fsUpdate('agrs', editAgrId, agr);
+    editAgrId=null;
+  } else {
+    await fsAdd('agrs', agr);
+  }
+  renderAgr(); agrView('list');
+}
+
+function renderAgr() {
+  const q=(document.getElementById('agrBuscar')||{value:''}).value.toLowerCase();
+  const filtered=cache.agrs.filter(a=>a.nombre.toLowerCase().includes(q)||a.rut.includes(q));
+  const el=document.getElementById('agrList');
+  if (!filtered.length) { el.innerHTML=`<div style="text-align:center;padding:20px;color:var(--ink3);font-size:14px;">${cache.agrs.length?'Sin resultados':'Sin agricultores registrados'}</div>`; return; }
+  el.innerHTML=filtered.map(a=>`
+    <div class="row" onclick="verAgr('${a.id}')">
+      <div class="row-icon" style="background:var(--gl);">👨‍🌾</div>
+      <div class="row-info">
+        <div class="row-title">${a.nombre}</div>
+        <div class="row-sub">${a.rut} · ${a.programa||'Sin programa'} · ${a.localidad||''}</div>
+      </div>
+      <div class="row-action">›</div>
+    </div>`).join('');
+}
+
+function verAgr(id) {
+  const a=cache.agrs.find(x=>x.id===id); if (!a) return;
+  document.getElementById('agrDetailContent').innerHTML=`
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div><div style="font-size:18px;font-weight:600;">${a.nombre}</div><div style="font-family:'DM Mono',monospace;font-size:13px;color:var(--ink2);margin-top:2px;">${a.rut}</div></div>
+        <span class="badge bg">${a.programa||'Sin programa'}</span>
+      </div>
+      ${a.localidad?`<div style="font-size:14px;color:var(--ink2);margin-bottom:6px;">📍 ${a.localidad}</div>`:''}
+      ${a.tel?`<div style="font-size:14px;color:var(--ink2);margin-bottom:6px;">📞 ${a.tel}</div>`:''}
+      ${a.cultivos?`<div style="font-size:14px;color:var(--ink2);margin-bottom:6px;">🌱 ${a.cultivos}</div>`:''}
+      ${a.obs?`<div style="font-size:13px;color:var(--ink3);margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">${a.obs}</div>`:''}
+      <div style="font-size:11px;color:var(--ink4);margin-top:10px;">Registrado: ${a.fecha}</div>
+    </div>
+    <div class="btn2">
+      <button class="btn btn-o" onclick="editAgr('${a.id}')">✏️ Editar</button>
+      <button class="btn btn-r" onclick="elimAgr('${a.id}')">🗑 Eliminar</button>
+    </div>
+    <button class="btn btn-s mt" onclick="agrView('list')">← Volver</button>`;
+  agrView('detail');
+}
+
+function editAgr(id) {
+  editAgrId=id;
+  const a=cache.agrs.find(x=>x.id===id); if (!a) return;
+  document.getElementById('aRut').value=a.rut;
+  document.getElementById('aNombre').value=a.nombre;
+  document.getElementById('aTel').value=a.tel||'';
+  document.getElementById('aLocalidad').value=a.localidad||'';
+  document.getElementById('aPrograma').value=a.programa||'';
+  document.getElementById('aCultivos').value=a.cultivos||'';
+  document.getElementById('aObs').value=a.obs||'';
+  document.getElementById('agrFormTitle').textContent='Editar ficha';
+  agrView('form');
+}
+async function elimAgr(id) {
+  if (!confirm('¿Eliminar esta ficha?')) return;
+  await fsDelete('agrs', id);
+  renderAgr(); agrView('list');
+}
+
+// ====== CRÉDITOS ======
+function calcCredito() {
+  const monto=parseFloat(document.getElementById('cMonto').value)||0;
+  const meses=parseInt(document.getElementById('cPlazo').value)||36;
+  const tasa =parseFloat(document.getElementById('cTasa').value)||6;
+  if (!monto) { document.getElementById('calcResult').style.display='none'; return; }
+  const r=(tasa/100)/12;
+  const cuota=r===0?monto/meses:monto*(r*Math.pow(1+r,meses))/(Math.pow(1+r,meses)-1);
+  const total=cuota*meses;
+  document.getElementById('calcCuota').textContent=fmt(Math.round(cuota));
+  document.getElementById('calcTotal').textContent=fmt(Math.round(total));
+  document.getElementById('calcIntereses').textContent=fmt(Math.round(total-monto));
+  document.getElementById('calcResult').style.display='block';
+}
+function registrarCredito() { document.getElementById('crMonto').value=document.getElementById('cMonto').value; credView('form'); }
+function credView(v) {
+  document.getElementById('cred-main').classList.remove('active');
+  document.getElementById('cred-form').classList.remove('active');
+  document.getElementById('cred-'+v).classList.add('active');
+  window.scrollTo(0,0);
+}
+async function guardarCred() {
+  const rut=document.getElementById('crRut').value.trim();
+  const nom=document.getElementById('crNombre').value.trim();
+  if (!rut||!nom) { alert('RUT y nombre son obligatorios.'); return; }
+  await fsAdd('creds', {rut,nombre:nom,tipo:document.getElementById('crTipo').value,
+    monto:document.getElementById('crMonto').value,estado:document.getElementById('crEstado').value,
+    obs:document.getElementById('crObs').value.trim(),fecha:today()});
+  renderCred(); credView('main');
+}
+function renderCred() {
+  const el=document.getElementById('credList');
+  if (!cache.creds.length) { el.innerHTML='<div style="text-align:center;padding:20px;color:var(--ink3);font-size:14px;">Sin créditos registrados</div>'; return; }
+  const ec={'Aprobado':'bg','En revisión':'ba','Rechazado':'br','Pagando':'bb','Pagado':'bg'};
+  el.innerHTML=cache.creds.map(c=>`
+    <div class="row">
+      <div class="row-icon" style="background:var(--al);">💰</div>
+      <div class="row-info">
+        <div class="row-title">${c.nombre}</div>
+        <div class="row-sub">${c.rut} · ${c.tipo} · ${c.monto?fmt(c.monto):''}</div>
+      </div>
+      <span class="badge ${ec[c.estado]||'ba'}">${c.estado}</span>
+    </div>`).join('');
+}
+
+// ====== POSTULACIONES ======
+const CHECKLIST_BASE=['Fotocopia cédula de identidad','Certificado de dominio vigente',
+  'Declaración de agricultor','Formulario de postulación firmado',
+  'Fotografías del predio','Certificado de inscripción SAG'];
+
+function postView(v) {
+  ['list','form','detail'].forEach(s=>document.getElementById('post-'+s).classList.remove('active'));
+  document.getElementById('post-'+v).classList.add('active');
+  if (v==='form') renderChecklist();
+  window.scrollTo(0,0);
+}
+function renderChecklist() {
+  document.getElementById('checklistItems').innerHTML=CHECKLIST_BASE.map((item,i)=>`
+    <div class="check-item" onclick="toggleCheck(${i})">
+      <div class="check-box" id="chk${i}"></div>
+      <div class="check-label" id="chkl${i}">${item}</div>
+    </div>`).join('');
+}
+function toggleCheck(i) {
+  const b=document.getElementById('chk'+i), l=document.getElementById('chkl'+i);
+  const done=b.classList.toggle('checked'); l.classList.toggle('done',done);
+}
+async function guardarPost() {
+  const rut=document.getElementById('pRut').value.trim();
+  const nom=document.getElementById('pNombre').value.trim();
+  if (!rut||!nom) { alert('RUT y nombre son obligatorios.'); return; }
+  const checks=CHECKLIST_BASE.map((item,i)=>({item,done:document.getElementById('chk'+i).classList.contains('checked')}));
+  const completados=checks.filter(c=>c.done).length;
+  await fsAdd('posts', {rut,nombre:nom,programa:document.getElementById('pPrograma').value,
+    estado:document.getElementById('pEstado').value,checks,completados,
+    total:CHECKLIST_BASE.length,fecha:today()});
+  renderPost(); postView('list');
+}
+function renderPost() {
+  const el=document.getElementById('postList');
+  if (!cache.posts.length) { el.innerHTML='<div style="text-align:center;padding:20px;color:var(--ink3);font-size:14px;">Sin postulaciones</div>'; return; }
+  const ec={'Pendiente':'ba','En revisión':'bb','Aprobada':'bg','Rechazada':'br'};
+  el.innerHTML=cache.posts.map((p,i)=>`
+    <div class="row" onclick="verPost('${p.id}')">
+      <div class="row-icon" style="background:var(--bl);">📋</div>
+      <div class="row-info">
+        <div class="row-title">${p.nombre}</div>
+        <div class="row-sub">${p.programa} · ${p.fecha}</div>
+        <div class="prog-bar-wrap" style="margin-top:5px;"><div class="prog-bar-fill" style="width:${Math.round(p.completados/p.total*100)}%"></div></div>
+        <div style="font-size:10px;color:var(--ink3);margin-top:2px;">${p.completados}/${p.total} docs</div>
+      </div>
+      <span class="badge ${ec[p.estado]||'ba'}">${p.estado}</span>
+    </div>`).join('');
+}
+function verPost(id) {
+  const p=cache.posts.find(x=>x.id===id); if (!p) return;
+  const ec={'Pendiente':'ba','En revisión':'bb','Aprobada':'bg','Rechazada':'br'};
+  document.getElementById('postDetailContent').innerHTML=`
+    <div class="card">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;">
+        <div><div style="font-size:17px;font-weight:600;">${p.nombre}</div><div style="font-family:'DM Mono',monospace;font-size:13px;color:var(--ink2);margin-top:2px;">${p.rut}</div></div>
+        <span class="badge ${ec[p.estado]||'ba'}">${p.estado}</span>
+      </div>
+      <div style="font-size:14px;color:var(--ink2);margin-bottom:8px;">📋 ${p.programa}</div>
+      <div style="font-size:13px;color:var(--ink3);margin-bottom:6px;">Documentos: ${p.completados}/${p.total}</div>
+      <div class="prog-bar-wrap"><div class="prog-bar-fill" style="width:${Math.round(p.completados/p.total*100)}%"></div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Checklist</div>
+      ${p.checks.map(c=>`<div class="check-item"><div class="check-box ${c.done?'checked':''}"></div><div class="check-label ${c.done?'done':''}">${c.item}</div></div>`).join('')}
+    </div>
+    <button class="btn btn-r" onclick="elimPost('${p.id}')" style="margin-bottom:8px;">🗑 Eliminar</button>
+    <button class="btn btn-s" onclick="postView('list')">← Volver</button>`;
+  postView('detail');
+}
+async function elimPost(id) {
+  if (!confirm('¿Eliminar?')) return;
+  await fsDelete('posts', id);
+  renderPost(); postView('list');
+}
+
+// ====== INFORMES ======
+function renderInformes() {
+  document.getElementById('iAgr').textContent  = cache.agrs.length;
+  document.getElementById('iCred').textContent = cache.creds.length;
+  document.getElementById('iPost').textContent = cache.posts.length;
+  document.getElementById('iDocs').textContent = cache.docs.length;
+  const pe={};
+  cache.posts.forEach(p=>{pe[p.estado]=(pe[p.estado]||0)+1;});
+  document.getElementById('postEstados').innerHTML=Object.keys(pe).length
+    ?Object.entries(pe).map(([k,v])=>`<div class="row"><div class="row-info"><div class="row-title">${k}</div></div><span class="badge ba">${v}</span></div>`).join('')
+    :'<div style="color:var(--ink3);font-size:14px;padding:12px 0;">Sin datos</div>';
+  const ce={};
+  cache.creds.forEach(c=>{ce[c.estado]=(ce[c.estado]||0)+1;});
+  document.getElementById('credEstados').innerHTML=Object.keys(ce).length
+    ?Object.entries(ce).map(([k,v])=>`<div class="row"><div class="row-info"><div class="row-title">${k}</div></div><span class="badge bg">${v}</span></div>`).join('')
+    :'<div style="color:var(--ink3);font-size:14px;padding:12px 0;">Sin datos</div>';
+}
+
+function exportarCSV() {
+  if (!cache.agrs.length) { alert('No hay agricultores registrados.'); return; }
+  const headers=['RUT','Nombre','Teléfono','Localidad','Programa','Cultivos','Observaciones','Fecha'];
+  const rows=cache.agrs.map(a=>[a.rut,a.nombre,a.tel||'',a.localidad||'',a.programa||'',a.cultivos||'',a.obs||'',a.fecha].map(v=>`"${v}"`).join(','));
+  const csv=[headers.join(','),...rows].join('\n');
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download='agricultores_indap.csv'; a.click();
+}
+function exportarInforme() {
+  const fecha=new Date().toLocaleDateString('es-CL',{day:'numeric',month:'long',year:'numeric'});
+  let txt=`INFORME INDAP — ${fecha}\nFuncionaria: ${currentUser?.email||'—'}\n${'='.repeat(40)}\n\n`;
+  txt+=`RESUMEN\n  Agricultores: ${cache.agrs.length}\n  Créditos: ${cache.creds.length}\n  Postulaciones: ${cache.posts.length}\n  Documentos: ${cache.docs.length}\n\n`;
+  if (cache.agrs.length){txt+=`AGRICULTORES\n`;cache.agrs.forEach(a=>{txt+=`  - ${a.nombre} (${a.rut}) — ${a.programa||'sin programa'} — ${a.localidad||''}\n`;});txt+='\n';}
+  if (cache.posts.length){txt+=`POSTULACIONES\n`;cache.posts.forEach(p=>{txt+=`  - ${p.nombre} | ${p.programa} | ${p.estado} | Docs: ${p.completados}/${p.total}\n`;});txt+='\n';}
+  const blob=new Blob([txt],{type:'text/plain;charset=utf-8;'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download='informe_indap.txt'; a.click();
+}
+
+// ====== APPS SCRIPT (Drive + Sheets) ======
+// El script en Google Apps Script debe manejar dos acciones:
+// action=undefined → subir imagen a Drive, devuelve {ok:true, url:"...", fileName:"..."}
+// action='sheets'  → agregar fila en Sheets, devuelve {ok:true}
+// Ver el archivo indap_script.gs para la implementación completa.
+
+// ====== BOOT ======
+initFirebase();
+</script>
+
+<!-- ============================= -->
+<!--  INSTRUCCIONES (ocultas)      -->
+<!-- ============================= -->
+<!--
+╔══════════════════════════════════════════╗
+║  PASOS PARA PONER EN MARCHA              ║
+╚══════════════════════════════════════════╝
+
+1. FIREBASE
+   a) Ve a https://console.firebase.google.com
+   b) Crea proyecto → habilita Authentication (Email/Password)
+   c) Crea usuario con el correo de tu tía
+   d) Habilita Firestore Database (modo producción)
+   e) En reglas de Firestore pon:
+      rules_version = '2';
+      service cloud.firestore {
+        match /databases/{database}/documents {
+          match /usuarios/{userId}/{document=**} {
+            allow read, write: if request.auth != null && request.auth.uid == userId;
+          }
+        }
+      }
+   f) Ve a Configuración del proyecto → Tu app web → copia la config
+   g) Pega la config en FIREBASE_CONFIG arriba en el JS
+   h) Cambia ALLOWED_EMAIL por el correo de tu tía
+
+2. GOOGLE APPS SCRIPT (Drive + Sheets)
+   a) Abre indap_script.gs en Google Apps Script
+   b) Asegúrate de que maneje:
+      - Sin action: guardar imagen en Drive, retornar {ok:true, url, fileName}
+      - action='sheets': agregar fila en Sheets
+   c) Despliega como Web App
+   d) Copia la URL y ponla en la app (Informes → Configuración → URL Apps Script)
+
+3. USAR LA APP
+   - Tu tía abre el archivo HTML en su teléfono o PC
+   - Ingresa con su Gmail y contraseña de Firebase
+   - Los datos se guardan en Firestore (nube)
+   - Los documentos van a Google Drive
+   - Cada documento agrega una fila en Google Sheets
+
+4. FIRESTORE GRATIS: hasta 50.000 lecturas/día y 20.000 escrituras/día.
+   Para uso personal es completamente gratuito.
+-->
+</body>
+</html>
